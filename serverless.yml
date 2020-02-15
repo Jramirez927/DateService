@@ -1,0 +1,79 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: DateService
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: us-east-1
+  environment:
+    DATE_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource: "*"
+
+functions:
+  newTable:
+    handler: api/createTable/table.newTable
+    events:
+     - http:
+         path: tables/newTable
+         method: get
+  getDate:
+    handler: api/get/dates.getDate
+    events:
+     - http:
+         path: dates/getDate/{id}
+         method: get
+  addDate:
+    handler: api/post/createDate.addDate
+    events:
+     - http:
+         path: dates/addDate
+         method: post
+
+resources:
+  Resources:
+    DatesDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: "hashKey"
+            AttributeType: "N"
+          -
+            AttributeName: "rangeKey"
+            AttributeType: "S"
+          -
+            AttributeName: "geohash"
+            AttributeType: "N"   
+        KeySchema:
+          -
+            AttributeName: "hashKey"
+            KeyType: "HASH"
+          -
+            AttributeName: "rangeKey"
+            KeyType: "RANGE"
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 5
+        StreamSpecification:
+          StreamViewType: "NEW_AND_OLD_IMAGES"
+        TableName: ${self:provider.environment.DATE_TABLE}
